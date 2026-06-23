@@ -43,6 +43,9 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+int currentNumber = 0;
+uint8_t lastButtonState = GPIO_PIN_SET;
+
 typedef struct {
     GPIO_TypeDef *port;
     uint16_t pin;
@@ -83,6 +86,7 @@ uint8_t numbers[10] = {
     0b11111110,
     0b11110110
 };
+
 
 /* USER CODE END PV */
 
@@ -140,9 +144,34 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  // Turn all segments off
-	  // Turn segment A on
-	      displayNumber(1234);
+	  uint8_t buttonState = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
+
+	  // Button on Nucleo is active LOW:
+	  // not pressed = HIGH, pressed = LOW
+	  if (lastButtonState == GPIO_PIN_SET && buttonState == GPIO_PIN_RESET) {
+		  currentNumber++;
+
+		         if (currentNumber > 9999)
+		         {
+		             currentNumber = 0;
+		         }
+
+		         HAL_Delay(1); // debounce delay
+		     }
+
+		     lastButtonState = buttonState;
+
+		     displayNumber(currentNumber);
+
+	  if (currentNumber > 10) {
+		  currentNumber++;
+
+		  HAL_Delay(10);
+	  }
+
+	  if (currentNumber > 9999) {
+		  currentNumber = 0;
+	  }
 
   }
   /* USER CODE END 3 */
