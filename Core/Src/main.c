@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,6 +43,46 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+typedef struct {
+    GPIO_TypeDef *port;
+    uint16_t pin;
+} PinDef;
+
+void allDigitsOff(void);
+void setSegments(uint8_t pattern);
+void displayNumber(int value);
+
+/* Segment order: A, B, C, D, E, F, G, DP */
+PinDef segPins[8] = {
+    {GPIOA, GPIO_PIN_0},
+    {GPIOA, GPIO_PIN_1},
+    {GPIOA, GPIO_PIN_4},
+    {GPIOB, GPIO_PIN_0},
+    {GPIOC, GPIO_PIN_1},
+    {GPIOC, GPIO_PIN_0},
+    {GPIOC, GPIO_PIN_2},
+    {GPIOC, GPIO_PIN_3}
+};
+
+PinDef digitPins[4] = {
+    {GPIOA, GPIO_PIN_10},   // D2 -> Digit 1
+    {GPIOB, GPIO_PIN_3},    // D3 -> Digit 2
+    {GPIOB, GPIO_PIN_5},    // D4 -> Digit 3
+    {GPIOB, GPIO_PIN_4}     // D5 -> Digit 4
+};
+
+uint8_t numbers[10] = {
+    0b11111100,
+    0b01100000,
+    0b11011010,
+    0b11110010,
+    0b01100110,
+    0b10110110,
+    0b10111110,
+    0b11100000,
+    0b11111110,
+    0b11110110
+};
 
 /* USER CODE END PV */
 
@@ -100,6 +140,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  // Turn all segments off
+	  // Turn segment A on
+	      displayNumber(1234);
+
   }
   /* USER CODE END 3 */
 }
@@ -203,16 +247,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4, GPIO_PIN_RESET);
+
+  /* Digit 1 off: PA10 HIGH */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10, GPIO_PIN_SET);
+  /* Digit pins off: PB3, PB4, PB5 HIGH */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5, GPIO_PIN_SET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -227,15 +271,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA0 PA1 PA4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4;
+  /*Configure GPIO pins : PA0 PA1 PA4 PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB2 PB10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10;
+  /*Configure GPIO pins : PB0 PB3 PB4 PB5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -247,6 +291,46 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void allDigitsOff(void)
+{
+    for (int i = 0; i < 4; i++) {
+        HAL_GPIO_WritePin(digitPins[i].port, digitPins[i].pin, GPIO_PIN_SET);
+    }
+}
+
+void setSegments(uint8_t pattern)
+{
+    for (int i = 0; i < 8; i++) {
+        if (pattern & (1 << (7 - i))) {
+            HAL_GPIO_WritePin(segPins[i].port, segPins[i].pin, GPIO_PIN_SET);
+        } else {
+            HAL_GPIO_WritePin(segPins[i].port, segPins[i].pin, GPIO_PIN_RESET);
+        }
+    }
+}
+
+void displayNumber(int value)
+{
+    int digits[4];
+
+    if (value < 0) value = 0;
+    if (value > 9999) value = 9999;
+
+    digits[0] = value / 1000;
+    digits[1] = (value / 100) % 10;
+    digits[2] = (value / 10) % 10;
+    digits[3] = value % 10;
+
+    for (int i = 0; i < 4; i++) {
+        allDigitsOff();
+        setSegments(numbers[digits[i]]);
+
+        // Common cathode digit ON = LOW
+        HAL_GPIO_WritePin(digitPins[i].port, digitPins[i].pin, GPIO_PIN_RESET);
+
+        HAL_Delay(2);
+    }
+}
 
 /* USER CODE END 4 */
 
