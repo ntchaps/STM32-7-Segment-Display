@@ -44,6 +44,11 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 int currentNumber = 0;
+int msecs = 0;
+int secs = 0;
+int mins = 0;
+int hours = 0;
+uint32_t lastTick = 0;
 uint8_t lastButtonState = GPIO_PIN_SET;
 
 typedef struct {
@@ -146,32 +151,44 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  uint8_t buttonState = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 
+	  // Everytime 1000 ticks (ms) pass, secs updates.
+	  if (HAL_GetTick() - lastTick >= 1000) {
+	         lastTick += 1000;
+
+	         secs++;
+	         if (secs >= 60) {
+	             secs = 0;
+	             mins++;
+	             if (mins >= 60) {
+	                 mins = 0;
+	                 hours++;
+	                 if (hours >= 24) {
+	                	 hours = 0;
+	                 }
+	             }
+
+	         }
+	     }
+
 	  // Button on Nucleo is active LOW:
 	  // not pressed = HIGH, pressed = LOW
 	  if (lastButtonState == GPIO_PIN_SET && buttonState == GPIO_PIN_RESET) {
-		  currentNumber++;
-
-		         if (currentNumber > 9999)
-		         {
-		             currentNumber = 0;
-		         }
-
-		         HAL_Delay(1); // debounce delay
-		     }
+		  msecs = 0;
+		  secs = 0;
+		  mins++;
+		  if (mins >= 60) {
+			  mins = 0;
+		  	  hours++;
+		  	  if (hours >= 24) {
+		  		  hours = 0;
+		  	  }
+		  }
+		  HAL_Delay(1); // debounce delay
+	  }
 
 		     lastButtonState = buttonState;
 
-		     displayNumber(currentNumber);
-
-	  if (currentNumber > 10) {
-		  currentNumber++;
-
-		  HAL_Delay(10);
-	  }
-
-	  if (currentNumber > 9999) {
-		  currentNumber = 0;
-	  }
+		     displayNumber((hours*100) + mins);
 
   }
   /* USER CODE END 3 */
