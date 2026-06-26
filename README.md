@@ -1,6 +1,7 @@
 # STM32-7-Segment-Display
 
 Physical NucleoF446RE Connections:
+
 	Segments:
 	Nucleo A0 → 220Ω → 5641AS pin 11
 	Nucleo A1 → 220Ω → 5641AS pin 7
